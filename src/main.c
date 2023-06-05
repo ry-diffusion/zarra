@@ -7,6 +7,14 @@ int main(int argc, char **argv)
 	if (!ParseCLI(&options, argc, argv))
 		return 1;
 
+	if (!IsFFMPEGInstalled())
+	{
+		fputs("Error: FFMPEG isn't installed. Please install it and "
+		      "try again\n",
+		      stderr);
+		return 1;
+	}
+
 	printf("Input = %s: Output = %s\n", options.input, options.output);
 
 	return 0;

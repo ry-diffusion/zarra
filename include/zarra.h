@@ -19,3 +19,8 @@ typedef struct
  * @returns 1 on success, otherwise returns 0.
  */
 bool ParseCLI(CLIOptions *opts, int argc, char **argv);
+
+/*
+ * Checks if `ffmpeg` can be run.
+ */
+bool IsFFMPEGInstalled(void);
