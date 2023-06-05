@@ -1,0 +1,3 @@
+#pragma once
+
+#define ZARRA_VERSION "@version@"
