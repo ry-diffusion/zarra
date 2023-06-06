@@ -24,7 +24,7 @@ typedef enum
 typedef struct
 {
 	TaskType type;
-	float rate, speed;
+	float framesPerSecond, bitrate, speed;
 	int stdoutFd, pid;
 } Task;
 
@@ -68,6 +68,17 @@ void SpawnVideoTask(TaskManager *taskManager, Text input, Text output);
  * @param input The input file path
  */
 void SpawnAudioTask(TaskManager *taskManager, Text device, Text output);
+
+/*
+ * Spawns a processing task.
+ * Merges video and a audio to a single file.
+ * @param taskManager The Task Manager
+ * @param videoPath The raw video path
+ * @param audioPath The raw audio path
+ * @param output The output path
+ */
+void SpawnProcessingTask(TaskManager *taskManager, Text videoPath,
+			 Text audioPath, Text outputPath);
 
 /*
  * Verify if str starts with prefix

@@ -8,7 +8,7 @@ void ClearBuffer(char *restrict buffer, uint size)
 
 	while (idx++ != size)
 	{
-		buffer[idx] = '\0';
+		buffer[idx] = 0;
 	}
 }
 

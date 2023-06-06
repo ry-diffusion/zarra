@@ -4,8 +4,10 @@
 
 void parseKV(Task *task, TextMut keyBuffer, TextMut valueBuffer)
 {
-	if (StartsWith(keyBuffer, "fps") || StartsWith(keyBuffer, "bitrate"))
-		task->rate = atof(valueBuffer);
+	if (StartsWith(keyBuffer, "fps"))
+		task->framesPerSecond = atof(valueBuffer);
+	else if (StartsWith(keyBuffer, "bitrate"))
+		task->bitrate = atof(valueBuffer);
 	else if (StartsWith(keyBuffer, "speed"))
 		task->speed = atof(valueBuffer);
 
@@ -32,19 +34,23 @@ void ParseFFmpegOutput(Task *task)
 		switch (*inputBuffer)
 		{
 		case '\n':
+			valueBuffer[bufferIdx] = '\0';
 			parseKV(task, keyBuffer, valueBuffer);
 			isReadingValue = 0;
 			bufferIdx = 0;
 			continue;
 		case '=':
+			keyBuffer[bufferIdx] = '\0';
 			bufferIdx = 0;
 			isReadingValue = true;
 			continue;
 		}
 
-		if (isReadingValue)
+		if (isReadingValue && bufferIdx < valueBufferSize)
 			valueBuffer[bufferIdx++] = *inputBuffer;
-		else
+		else if (bufferIdx < keyBufferSize)
+		{
 			keyBuffer[bufferIdx++] = *inputBuffer;
+		}
 	}
 }
