@@ -3,11 +3,13 @@
 
 #include <getopt.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 
-static struct option Options[] = {{"input", required_argument, 0, 'i'},
+static struct option OPTIONS[] = {{"input", required_argument, 0, 'i'},
 				  {"output", required_argument, 0, 'o'},
+				  {"framerate", required_argument, 0, 'f'},
 				  {"help", no_argument, 0, 'h'},
 				  {0, 0, 0, 0}};
 
@@ -15,6 +17,7 @@ static const Text HelpText =
     "Zarra v" ZARRA_VERSION " A simple screen recorder\n"
     "Usage: \n"
     "   -i (--input) [ARG]: Set input device\n"
+    "   -f (--framerate) [ARG]: Set recording's framerate\n"
     "   -o (--output) <ARG>: Set output device";
 
 bool ParseCLI(CLIOptions *opts, int argc, char **argv)
@@ -23,8 +26,8 @@ bool ParseCLI(CLIOptions *opts, int argc, char **argv)
 	struct stat inputStat;
 	char c;
 
-	while ((c = getopt_long(argc, argv, "i:o:h:", Options, &optionIndex)) !=
-	       -1)
+	while ((c = getopt_long(argc, argv, "i:o:h:f:", OPTIONS,
+				&optionIndex)) != -1)
 	{
 		switch (c)
 		{
@@ -34,6 +37,10 @@ bool ParseCLI(CLIOptions *opts, int argc, char **argv)
 
 		case 'o':
 			strncpy(opts->output, optarg, strlen(optarg));
+			break;
+
+		case 'f':
+			opts->framerate = atoi(optarg);
 			break;
 
 		case 0:

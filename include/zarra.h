@@ -46,6 +46,7 @@ typedef struct
 {
 	char input[PATH_MAX];
 	char output[PATH_MAX];
+	uint framerate;
 } CLIOptions;
 
 /*
