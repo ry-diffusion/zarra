@@ -5,41 +5,61 @@
 
 void SpawnVideoTask(TaskManager *taskManager, Text input, Text output)
 {
+	int pipedes[2] = {0, 0};
+	pipe(pipedes);
+
 	Text cmdline[] = {
 	    "pkexec",	 "ffmpeg",
+	    "-y",	 "-hide_banner",
+	    "-loglevel", "error",
+	    "-progress", "-",
 	    "-device",	 input,
 	    "-f",	 "kmsgrab",
 	    "-i",	 "-",
 	    "-filter:v", "hwmap=derive_device=vaapi,scale_vaapi=format=nv12",
 	    "-codec:v",	 "h264_vaapi",
 	    "-f",	 "rawvideo",
-	    "-y",	 output,
-	    NULL};
+	    output,	 NULL};
 
 	pid_t pid = fork();
 
 	if (!pid)
 	{
+		close(pipedes[0]);
+		close(STDIN_FILENO);
+		dup2(pipedes[1], STDOUT_FILENO);
 		execvp("pkexec", (char **)cmdline);
 	}
 
-	Task task = {TaskRecordVideo, STDOUT_FILENO, STDERR_FILENO, pid};
+	close(pipedes[1]);
+
+	Task task = {TaskRecordVideo, 0.0f, 0.0f, pipedes[0], pid};
 	taskManager->running[taskManager->currentRunning++] = task;
 }
 
 void SpawnAudioTask(TaskManager *taskManager, Text input, Text output)
 {
-	Text cmdline[] = {"ffmpeg", "-f", "pulse", "-ac", "1",	  "-i",
-			  input,    "-f", "flac",  "-y",  output, NULL};
+	int pipedes[2] = {0, 0};
+	pipe(pipedes);
+
+	Text cmdline[] = {
+	    "ffmpeg", "-y", "-hide_banner", "-loglevel", "error", "-progress",
+	    "-",      "-f", "pulse",	    "-ac",	 "1",	  "-i",
+	    input,    "-f", "flac",	    output,	 NULL};
 
 	pid_t pid = fork();
 
 	if (!pid)
 	{
+		close(pipedes[0]);
+		close(STDIN_FILENO);
+		dup2(pipedes[1], STDOUT_FILENO);
 		execvp("ffmpeg", (char **)cmdline);
 	}
 
-	Task task = {TaskRecordVideo, STDOUT_FILENO, STDERR_FILENO, pid};
+	close(pipedes[1]);
+
+	Task task = {TaskRecordAudio, 0.0f, 0.0f, pipedes[0], pid};
 	taskManager->running[taskManager->currentRunning++] = task;
 }
 
@@ -54,7 +74,7 @@ bool IsAllTasksGood(TaskManager *taskManager)
 	{
 		task = taskManager->running[currentTask];
 
-		rc = waitpid(task.pid, &stat, WUNTRACED | WCONTINUED);
+		rc = waitpid(task.pid, &stat, WUNTRACED | WCONTINUED | WNOHANG);
 		if (rc == -1)
 			return false;
 		if (WIFEXITED(stat))

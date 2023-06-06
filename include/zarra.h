@@ -1,9 +1,14 @@
 #pragma once
 #include <limits.h>
 
+#define keyBufferSize 24
+#define valueBufferSize 24
+
 typedef unsigned char bool;
 typedef const char *restrict Text;
+typedef char *restrict TextMut;
 typedef unsigned char u8;
+typedef unsigned int uint;
 
 static const bool true = 1;
 static const bool false = 0;
@@ -19,7 +24,8 @@ typedef enum
 typedef struct
 {
 	TaskType type;
-	int stdoutFd, stderrFd, pid;
+	float rate, speed;
+	int stdoutFd, pid;
 } Task;
 
 typedef struct
@@ -63,5 +69,14 @@ void SpawnVideoTask(TaskManager *taskManager, Text input, Text output);
  */
 void SpawnAudioTask(TaskManager *taskManager, Text device, Text output);
 
+/*
+ * Verify if str starts with prefix
+ * @param prefix The prefix
+ * @return Returns 0 if not matches, otherwise returns 1.
+ */
+unsigned char StartsWith(Text str, Text prefix);
+
+void ClearBuffer(char *restrict buffer, uint size);
 bool IsAllTasksGood(TaskManager *taskManager);
 void TerminateAllTasks(TaskManager *taskManager);
+void ParseFFmpegOutput(Task *task);
