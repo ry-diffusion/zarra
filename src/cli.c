@@ -4,10 +4,11 @@
 #include <getopt.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/stat.h>
 
 static struct option Options[] = {{"input", required_argument, 0, 'i'},
 				  {"output", required_argument, 0, 'o'},
-				  {"help", required_argument, 0, 'h'},
+				  {"help", no_argument, 0, 'h'},
 				  {0, 0, 0, 0}};
 
 static const Text HelpText =
@@ -18,32 +19,47 @@ static const Text HelpText =
 
 bool ParseCLI(CLIOptions *opts, int argc, char **argv)
 {
-
 	int optionIndex = 0;
-	char c = 0;
+	struct stat inputStat;
+	char c;
 
-	while (1)
+	while ((c = getopt_long(argc, argv, "i:o:h:", Options, &optionIndex)) !=
+	       -1)
 	{
-		c = getopt_long(argc, argv, "i:o:h", Options, &optionIndex);
-		if (c == -1)
-			break;
-
 		switch (c)
 		{
-		case 0:
-			break;
 		case 'i':
 			strncpy(opts->input, optarg, strlen(optarg));
 			break;
+
 		case 'o':
 			strncpy(opts->output, optarg, strlen(optarg));
 			break;
+
+		case 0:
+		case ':':
 		case '?':
-			return false;
 		default:
-			puts(HelpText);
-			return false;
+			goto error;
 		}
 	}
+
+	if (!*opts->output)
+		strncpy(opts->output, defaultOutputFileName,
+			strlen(defaultOutputFileName) + 1);
+
+	if (!*opts->input)
+		goto error;
+
+	if (stat(opts->input, &inputStat) < 0)
+	{
+		perror(opts->input);
+		goto error;
+	}
+
 	return true;
+
+error:
+	puts(HelpText);
+	return false;
 }

@@ -3,6 +3,7 @@
 
 #define keyBufferSize 24
 #define valueBufferSize 24
+#define defaultOutputFileName "ZarraRecording.mkv"
 
 typedef unsigned char bool;
 typedef const char *restrict Text;
@@ -20,6 +21,13 @@ typedef enum
 	TaskProcessRecording,
 	TaskMax
 } TaskType;
+
+typedef enum
+{
+	ValidationOK = (1 << 1),
+	ValidationMissingInput = (1 << 2),
+	ValidationInvalidInput = (1 << 3)
+} CLIValidationResult;
 
 typedef struct
 {
