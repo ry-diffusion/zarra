@@ -1,7 +1,9 @@
 #include "zarra.h"
 #include <limits.h>
 #include <signal.h>
+#include <stdatomic.h>
 #include <stdio.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 /*
@@ -12,12 +14,20 @@
  * DROP: Global variables
  * TODO: CLI Framerate
  */
+UIState ui = {0};
+
+void quitRequested(int signal)
+{
+	(void)signal;
+
+	ui.terminateRequested = true;
+}
 
 int main(int argc, char **argv)
 {
 	CLIOptions options = {0};
 	TaskManager taskManager = {{{0}}, 0};
-	UIState us = {0};
+
 	char cwd[PATH_MAX >> 1] = {0};
 	char rawAudioPath[PATH_MAX] = {0};
 	char rawVideoPath[PATH_MAX] = {0};
@@ -41,18 +51,44 @@ int main(int argc, char **argv)
 	SpawnVideoTask(&taskManager, options.input, rawVideoPath);
 	SpawnAudioTask(&taskManager, "default", rawAudioPath);
 
+	signal(SIGTERM, quitRequested);
+	signal(SIGINT, quitRequested);
+
+	puts("Press C to stop recording...");
+
+	UIPrepareTerm(&ui);
+
 	if (!IsAllTasksGood(&taskManager))
 	{
 		puts("Unable to start recording!");
+		goto error;
 	}
 	else
 	{
-		UITask(&us, &taskManager);
+		UITask(&ui, &taskManager);
 	}
 
 	TerminateAllTasks(&taskManager);
+	ui.terminateRequested = false;
+
+	taskManager.currentRunning = 0;
+	SpawnProcessingTask(&taskManager, rawVideoPath, rawAudioPath,
+			    options.output);
+
+	puts("Processing!\n");
+
+	wait(NULL);
+	UITask(&ui, &taskManager);
+
+	UIRestoreTerm(&ui);
 	remove(rawAudioPath);
 	remove(rawVideoPath);
 
 	return 0;
+error:
+	UIRestoreTerm(&ui);
+	remove(rawAudioPath);
+	remove(rawVideoPath);
+
+	return 1;
 }

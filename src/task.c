@@ -23,7 +23,6 @@ void SpawnVideoTask(TaskManager *taskManager, Text input, Text output)
 	    output,	  NULL};
 
 	pid_t pid = fork();
-
 	if (!pid)
 	{
 		close(pipedes[0]);
@@ -57,51 +56,13 @@ void SpawnAudioTask(TaskManager *taskManager, Text input, Text output)
 		dup2(pipedes[1], STDOUT_FILENO);
 		execvp("ffmpeg", (char **)cmdline);
 	}
-
-	close(pipedes[1]);
-
-	Task task = {TaskRecordAudio, 0.0f, 0.0f, 0.0f, pipedes[0], pid};
-	taskManager->running[taskManager->currentRunning++] = task;
-}
-
-bool IsAllTasksGood(TaskManager *taskManager)
-{
-	int stat, rc;
-	u8 currentTask;
-	Task task;
-
-	for (currentTask = 0; currentTask < taskManager->currentRunning;
-	     ++currentTask)
+	else
 	{
-		task = taskManager->running[currentTask];
-		rc = waitpid(task.pid, &stat, WUNTRACED | WCONTINUED | WNOHANG);
+		close(pipedes[1]);
 
-		switch (rc)
-		{
-		case -1:
-			return false;
-		case 0:
-			continue;
-		}
-
-		if (WIFEXITED(stat) && WEXITSTATUS(stat) != 0)
-			return false;
-	}
-
-	return true;
-}
-
-void TerminateAllTasks(TaskManager *taskManager)
-{
-	u8 currentTask;
-	Task task;
-
-	for (currentTask = 0; currentTask < taskManager->currentRunning;
-	     ++currentTask)
-	{
-		task = taskManager->running[currentTask];
-
-		kill(SIGTERM, task.pid);
+		Task task = {TaskRecordAudio, 0.0f, 0.0f, 0.0f,
+			     pipedes[0],      pid};
+		taskManager->running[taskManager->currentRunning++] = task;
 	}
 }
 
@@ -130,4 +91,58 @@ void SpawnProcessingTask(TaskManager *taskManager, Text videoPath,
 
 	Task task = {TaskProcessRecording, 0.0f, 0.0f, 0.0f, pipedes[0], pid};
 	taskManager->running[taskManager->currentRunning++] = task;
+}
+
+bool IsAllTasksGood(TaskManager *taskManager)
+{
+	int stat, rc;
+	u8 currentTask;
+	Task task;
+
+	for (currentTask = 0; currentTask < taskManager->currentRunning;
+	     ++currentTask)
+	{
+
+		task = taskManager->running[currentTask];
+
+		switch (task.type)
+		{
+		case TaskRecordVideo:
+			if (IsPipeClosed(task.stdoutFd))
+				return false;
+			break;
+		default:
+			rc = waitpid(task.pid, &stat,
+				     WUNTRACED | WCONTINUED | WNOHANG);
+
+			switch (rc)
+			{
+			case -1:
+				return false;
+			case 0:
+				continue;
+			}
+
+			if (WIFEXITED(stat) && WEXITSTATUS(stat) != 0)
+				return false;
+		}
+	}
+
+	return true;
+}
+
+void TerminateAllTasks(TaskManager *taskManager)
+{
+	u8 currentTask;
+	Task task;
+
+	for (currentTask = 0; currentTask < taskManager->currentRunning;
+	     ++currentTask)
+	{
+		task = taskManager->running[currentTask];
+
+		kill(task.pid, SIGTERM);
+		kill(task.pid, SIGHUP);
+		close(task.stdoutFd);
+	}
 }

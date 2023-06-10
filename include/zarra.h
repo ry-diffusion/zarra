@@ -1,5 +1,7 @@
 #pragma once
 #include <limits.h>
+#include <stdatomic.h>
+#include <termios.h>
 
 #define keyBufferSize 24
 #define valueBufferSize 24
@@ -53,6 +55,8 @@ typedef struct
 {
 	uint lastVideoFramerate, outputWritten;
 	float lastAudioBitrate;
+	struct termios ttyOldstate;
+	atomic_bool terminateRequested;
 } UIState;
 
 /*
@@ -108,3 +112,6 @@ void TerminateAllTasks(TaskManager *taskManager);
 void ParseFFmpegOutput(Task *task);
 
 void UITask(UIState *us, TaskManager *tm);
+void UIPrepareTerm(UIState *ui);
+void UIRestoreTerm(UIState *ui);
+bool IsPipeClosed(uint fd);
