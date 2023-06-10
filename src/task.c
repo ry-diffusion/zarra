@@ -69,22 +69,26 @@ bool IsAllTasksGood(TaskManager *taskManager)
 	int stat, rc;
 	u8 currentTask;
 	Task task;
-	bool allGood = true;
 
-	for (currentTask = 0;
-	     currentTask < taskManager->currentRunning && allGood;
+	for (currentTask = 0; currentTask < taskManager->currentRunning;
 	     ++currentTask)
 	{
 		task = taskManager->running[currentTask];
-
 		rc = waitpid(task.pid, &stat, WUNTRACED | WCONTINUED | WNOHANG);
-		if (rc == -1)
+
+		switch (rc)
+		{
+		case -1:
 			return false;
+		case 0:
+			continue;
+		}
+
 		if (WIFEXITED(stat) && WEXITSTATUS(stat) != 0)
-			allGood = false;
+			return false;
 	}
 
-	return allGood;
+	return true;
 }
 
 void TerminateAllTasks(TaskManager *taskManager)

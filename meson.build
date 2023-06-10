@@ -9,7 +9,7 @@ configure_file(input : 'include/zarra_static.h.in',
                output : 'zarra_static.h',
                configuration : conf_data)
 
-executable('zarra', [ 'src/main.c', 'src/cli.c', 'src/utils.c', 'src/task.c', 'src/ffmpeg_parser.c' ] ,
+executable('zarra', [ 'src/main.c', 'src/cli.c', 'src/utils.c', 'src/task.c', 'src/ffmpeg_parser.c', 'src/ui.c' ] ,
   include_directories : 'include',
   install : true)
 

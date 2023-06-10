@@ -58,6 +58,9 @@ bool ParseCLI(CLIOptions *opts, int argc, char **argv)
 	if (!*opts->input)
 		goto error;
 
+	if (!opts->framerate)
+		opts->framerate = 60;
+
 	if (stat(opts->input, &inputStat) < 0)
 	{
 		perror(opts->input);

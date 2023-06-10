@@ -49,6 +49,12 @@ typedef struct
 	uint framerate;
 } CLIOptions;
 
+typedef struct
+{
+	uint lastVideoFramerate, outputWritten;
+	float lastAudioBitrate;
+} UIState;
+
 /*
  * Parses cli arguments
  * @param argc The number of arguments
@@ -100,3 +106,5 @@ void ClearBuffer(char *restrict buffer, uint size);
 bool IsAllTasksGood(TaskManager *taskManager);
 void TerminateAllTasks(TaskManager *taskManager);
 void ParseFFmpegOutput(Task *task);
+
+void UITask(UIState *us, TaskManager *tm);
