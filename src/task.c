@@ -165,6 +165,5 @@ void TerminateAllTasks(TaskManager *taskManager)
 		task = taskManager->running[currentTask];
 
 		kill(task.pid, SIGTERM);
-		// close(task.stdoutFd);
 	}
 }

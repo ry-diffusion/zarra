@@ -26,7 +26,7 @@ int WaitPid(pid_t pid)
 	int stat, rc;
 	do
 	{
-		rc = waitpid(pid, &stat, WUNTRACED | WCONTINUED);
+		rc = waitpid(pid, &stat, WUNTRACED);
 		if (rc == -1)
 			return false;
 		if (WIFEXITED(stat))
