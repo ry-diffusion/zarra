@@ -8,15 +8,18 @@
 #define defaultOutputFileName "ZarraRecording.mkv"
 
 typedef unsigned char bool;
-typedef const char *restrict Text;
-typedef char *restrict TextMut;
 typedef unsigned char u8;
 typedef unsigned int uint;
+typedef char *restrict Text;
 
 static const bool true = 1;
 static const bool false = 0;
 
-typedef enum
+#if !defined(PATH_MAX)
+#define PATH_MAX 4096
+#endif
+
+typedef enum TaskType
 {
 	TaskRecordAudio,
 	TaskRecordVideo,
@@ -24,34 +27,39 @@ typedef enum
 	TaskMax
 } TaskType;
 
-typedef enum
+typedef enum CLIValidationResult
 {
 	ValidationOK = (1 << 1),
 	ValidationMissingInput = (1 << 2),
 	ValidationInvalidInput = (1 << 3)
 } CLIValidationResult;
 
-typedef struct
+typedef struct Task
 {
 	TaskType type;
 	float framesPerSecond, bitrate, speed;
 	int stdoutFd, pid;
 } Task;
 
-typedef struct
+typedef struct TaskManager
 {
 	Task running[TaskMax];
 	u8 currentRunning;
 } TaskManager;
 
-typedef struct
+typedef struct CLIOptions
 {
 	char input[PATH_MAX];
 	char output[PATH_MAX];
 	uint framerate;
+
+	/**
+	 * -1 when not, and >= 1, when it wants
+	 */
+	int wantsRootAgent;
 } CLIOptions;
 
-typedef struct
+typedef struct UIState
 {
 	uint lastVideoFramerate, outputWritten;
 	float lastAudioBitrate;
@@ -59,7 +67,7 @@ typedef struct
 	atomic_bool terminateRequested;
 } UIState;
 
-/*
+/**
  * Parses cli arguments
  * @param argc The number of arguments
  * @param argc The values of arguments
@@ -67,28 +75,26 @@ typedef struct
  */
 bool ParseCLI(CLIOptions *opts, int argc, char **argv);
 
-/*
+/**
  * Checks if `ffmpeg` can be run.
  */
 bool IsFFMPEGInstalled(void);
 
-/*
+/**
  * Spawns a Video Recording task.
  * @param taskManager The Task Manager
  * @param input The input file path
-//  * @returns Negative integer whens fails to spawn it, otherwise 1 on
-//  * success.
  */
 void SpawnVideoTask(TaskManager *taskManager, Text input, Text output);
 
-/*
+/**
  * Spawns a Audio Recording task.
  * @param taskManager The Task Manager
  * @param input The input file path
  */
 void SpawnAudioTask(TaskManager *taskManager, Text device, Text output);
 
-/*
+/**
  * Spawns a processing task.
  * Merges video and a audio to a single file.
  * @param taskManager The Task Manager
@@ -99,7 +105,7 @@ void SpawnAudioTask(TaskManager *taskManager, Text device, Text output);
 void SpawnProcessingTask(TaskManager *taskManager, Text videoPath,
 			 Text audioPath, Text outputPath);
 
-/*
+/**
  * Verify if str starts with prefix
  * @param prefix The prefix
  * @return Returns 0 if not matches, otherwise returns 1.
