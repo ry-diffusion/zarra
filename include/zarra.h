@@ -54,6 +54,7 @@ typedef struct TaskManager
 typedef struct CLIOptions
 {
 	char input[pathMax];
+	char audioSource[200];
 	char output[pathMax];
 	uint framerate;
 

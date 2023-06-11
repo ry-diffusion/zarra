@@ -10,16 +10,19 @@
 static struct option OPTIONS[] = {{"input", required_argument, 0, 'i'},
 				  {"output", required_argument, 0, 'o'},
 				  {"framerate", required_argument, 0, 'f'},
+				  {"audio-source", required_argument, 0, 'I'},
 				  {"agent", required_argument, 0, 'a'},
 				  {"help", no_argument, 0, 'h'},
 				  {0, 0, 0, 0}};
 
-static Text HelpText = "Zarra v" ZARRA_VERSION " A simple screen recorder\n"
-		       "Usage: \n"
-		       "   -i (--input) [ARG]: Set input device\n"
-		       "   -f (--framerate) [ARG]: Set recording's framerate\n"
-		       "   -a (--agent) [USER ID]: Spawns a root agent\n"
-		       "   -o (--output) <ARG>: Set output device";
+static Text HelpText =
+    "Zarra v" ZARRA_VERSION " A simple screen recorder\n"
+    "Usage: \n"
+    "   -i (--input) <ARG>: Set input device\n"
+    "   -f (--framerate) [ARG]: Set recording's framerate\n"
+    "   -a (--agent) [USER ID]: Spawns a root agent\n"
+    "   -I (--audio-source) [PULSEAUDIO DEVICE]: Spawns a root agent\n"
+    "   -o (--output) <FILE>: Set output device";
 
 bool ParseCLI(CLIOptions *opts, int argc, char **argv)
 {
@@ -28,7 +31,7 @@ bool ParseCLI(CLIOptions *opts, int argc, char **argv)
 	char c;
 	opts->wantsRootAgent = -1;
 
-	while ((c = getopt_long(argc, argv, "a:i:o:h:f:", OPTIONS,
+	while ((c = getopt_long(argc, argv, "I:a:i:o:h:f:", OPTIONS,
 				&optionIndex)) != -1)
 	{
 		switch (c)
@@ -43,6 +46,10 @@ bool ParseCLI(CLIOptions *opts, int argc, char **argv)
 
 		case 'o':
 			strncpy(opts->output, optarg, strlen(optarg));
+			break;
+
+		case 'I':
+			strncpy(opts->audioSource, optarg, strlen(optarg));
 			break;
 
 		case 'f':
@@ -61,11 +68,14 @@ bool ParseCLI(CLIOptions *opts, int argc, char **argv)
 		strncpy(opts->output, defaultOutputFileName,
 			strlen(defaultOutputFileName) + 1);
 
-	if (!*opts->input)
-		goto error;
+	if (!*opts->audioSource)
+		strncpy(opts->output, "default", strlen("default") + 1);
 
 	if (!opts->framerate)
 		opts->framerate = 60;
+
+	if (!*opts->input)
+		goto error;
 
 	if (stat(opts->input, &inputStat) < 0)
 	{

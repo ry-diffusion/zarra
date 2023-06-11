@@ -29,9 +29,8 @@ bool RunAgent(CLIOptions options)
 	signal(SIGINT, onQuitRequested);
 	signal(SIGTERM, onQuitRequested);
 
-	SpawnAudioTask(&taskManager,
-		       "alsa_output.pci-0000_00_1b.0.analog-stereo.monitor",
-		       rawAudioPath, options.wantsRootAgent);
+	SpawnAudioTask(&taskManager, options.audioSource, rawAudioPath,
+		       options.wantsRootAgent);
 
 	SpawnVideoTask(&taskManager, options.input, rawVideoPath);
 
