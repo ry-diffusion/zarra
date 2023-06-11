@@ -2,6 +2,7 @@
         "mesonbuild.configureOnOpen": true,
         "mesonbuild.buildFolder": "build",
         "files.associations": {
-                "limits.h": "c"
+                "limits.h": "c",
+                "zarra.h": "c"
         }
 }

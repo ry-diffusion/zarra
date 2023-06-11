@@ -1,5 +1,8 @@
 #include "zarra.h"
+#include <signal.h>
 #include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -37,7 +40,7 @@ void SpawnVideoTask(TaskManager *taskManager, Text input, Text output)
 	taskManager->running[taskManager->currentRunning++] = task;
 }
 
-void SpawnAudioTask(TaskManager *taskManager, Text input, Text output)
+void SpawnAudioTask(TaskManager *taskManager, Text input, Text output, uint uid)
 {
 	int pipedes[2] = {0, 0};
 	pipe(pipedes);
@@ -51,6 +54,21 @@ void SpawnAudioTask(TaskManager *taskManager, Text input, Text output)
 
 	if (!pid)
 	{
+		char buffer[30] = {0};
+
+		if (setuid(uid) < 0)
+		{
+			fprintf(stderr,
+				"AudioTask(error): unable to setuid to "
+				"%u. Aborting!\n ",
+				uid);
+
+			_exit(1);
+		}
+
+		snprintf(buffer, 30, "/var/run/user/%u/pulse", uid);
+		setenv("PULSE_RUNTIME_PATH", buffer, 1);
+
 		close(pipedes[0]);
 		close(STDIN_FILENO);
 		dup2(pipedes[1], STDOUT_FILENO);
@@ -112,8 +130,7 @@ bool IsAllTasksGood(TaskManager *taskManager)
 				return false;
 			break;
 		default:
-			rc = waitpid(task.pid, &stat,
-				     WUNTRACED | WCONTINUED | WNOHANG);
+			rc = waitpid(task.pid, &stat, WUNTRACED | WNOHANG);
 
 			switch (rc)
 			{
@@ -142,7 +159,6 @@ void TerminateAllTasks(TaskManager *taskManager)
 		task = taskManager->running[currentTask];
 
 		kill(task.pid, SIGTERM);
-		kill(task.pid, SIGHUP);
-		close(task.stdoutFd);
+		// close(task.stdoutFd);
 	}
 }

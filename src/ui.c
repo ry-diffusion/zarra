@@ -7,23 +7,23 @@
 
 Text space = " ";
 
-void updateState(UIState *us, TaskManager *tm)
+void updateState(UIState *uiState, TaskManager *taskManager)
 {
 	Task *task;
 	uint current;
 
-	for (current = 0; current < tm->currentRunning; ++current)
+	for (current = 0; current < taskManager->currentRunning; ++current)
 	{
-		task = &tm->running[current];
+		task = &taskManager->running[current];
 		ParseFFmpegOutput(task);
 
 		switch (task->type)
 		{
 		case TaskRecordAudio:
-			us->lastAudioBitrate = task->bitrate;
+			uiState->lastAudioBitrate = task->bitrate;
 			break;
 		case TaskRecordVideo:
-			us->lastVideoFramerate = task->framesPerSecond;
+			uiState->lastVideoFramerate = task->framesPerSecond;
 			break;
 		default:
 			break;
@@ -31,15 +31,15 @@ void updateState(UIState *us, TaskManager *tm)
 	}
 }
 
-void updateOutput(UIState *us, Text output)
+void updateOutput(UIState *uiState, Text output)
 {
-	fwrite(space, sizeof(char), us->outputWritten, stdout);
+	fwrite(space, sizeof(char), uiState->outputWritten, stdout);
 	fputc('\r', stdout);
-	us->outputWritten = printf("%s\r", output);
+	uiState->outputWritten = printf("%s\r", output);
 	fflush(stdout);
 }
 
-void UITask(UIState *us, TaskManager *tm)
+void UITask(UIState *uiState, TaskManager *taskManager)
 {
 	char textBuffer[512] = {0};
 	fd_set readset;
@@ -63,19 +63,20 @@ void UITask(UIState *us, TaskManager *tm)
 			}
 		}
 
-		updateState(us, tm);
+		updateState(uiState, taskManager);
 		snprintf(textBuffer, 512, "video: fps(%u); audio: bitrate(%f)",
-			 us->lastVideoFramerate, us->lastAudioBitrate);
-		updateOutput(us, textBuffer);
-	} while (IsAllTasksGood(tm) && !us->terminateRequested);
+			 uiState->lastVideoFramerate,
+			 uiState->lastAudioBitrate);
+		updateOutput(uiState, textBuffer);
+	} while (IsAllTasksGood(taskManager) && !uiState->terminateRequested);
 }
 
-void UIPrepareTerm(UIState *ui)
+void UIPrepareTerm(UIState *uiState)
 
 {
 	struct termios ttystate;
 	tcgetattr(STDIN_FILENO, &ttystate);
-	ui->ttyOldstate = ttystate;
+	uiState->ttyOldstate = ttystate;
 	ttystate.c_lflag &= ~(ICANON | ECHO);
 	ttystate.c_cc[VMIN] = 1;
 

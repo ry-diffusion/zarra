@@ -22,6 +22,7 @@ void spawnRootAgent(char **agentArguments, char **argv)
 	puts("Respawning Zarra with a root agent.");
 
 	next = "pkexec";
+	next = "--keep-cwd";
 	next = *argv++;
 	next = "--agent";
 	next = stringUid;
@@ -49,6 +50,8 @@ int main(int argc, char **argv)
 		spawnRootAgent((char **)agentArguments, argv);
 		perror("Failed to spawn root agent! Too bad!");
 	}
-
-	return 0;
+	else
+	{
+		return !RunAgent(options);
+	}
 }

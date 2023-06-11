@@ -16,8 +16,12 @@ static const bool true = 1;
 static const bool false = 0;
 
 #if !defined(PATH_MAX)
-#define PATH_MAX 4096
+#define pathMax 4096
+#else
+#define pathMax PATH_MAX
 #endif
+
+#define cwdMax pathMax >> 1
 
 typedef enum TaskType
 {
@@ -91,8 +95,10 @@ void SpawnVideoTask(TaskManager *taskManager, Text input, Text output);
  * Spawns a Audio Recording task.
  * @param taskManager The Task Manager
  * @param input The input file path
+ * @param uid The uid to record audio
  */
-void SpawnAudioTask(TaskManager *taskManager, Text device, Text output);
+void SpawnAudioTask(TaskManager *taskManager, Text device, Text output,
+		    uint uid);
 
 /**
  * Spawns a processing task.
@@ -113,11 +119,14 @@ void SpawnProcessingTask(TaskManager *taskManager, Text videoPath,
 unsigned char StartsWith(Text str, Text prefix);
 
 void ClearBuffer(char *restrict buffer, uint size);
+bool IsPipeClosed(uint fd);
+
 bool IsAllTasksGood(TaskManager *taskManager);
 void TerminateAllTasks(TaskManager *taskManager);
 void ParseFFmpegOutput(Task *task);
 
-void UITask(UIState *us, TaskManager *tm);
-void UIPrepareTerm(UIState *ui);
-void UIRestoreTerm(UIState *ui);
-bool IsPipeClosed(uint fd);
+void UITask(UIState *uiState, TaskManager *taskManager);
+void UIPrepareTerm(UIState *uiState);
+void UIRestoreTerm(UIState *uiStae);
+
+bool RunAgent(CLIOptions options);
