@@ -10,7 +10,7 @@
 static struct option OPTIONS[] = {{"input", required_argument, 0, 'i'},
 				  {"output", required_argument, 0, 'o'},
 				  {"framerate", required_argument, 0, 'f'},
-				  {"audio-source", required_argument, 0, 'I'},
+				  {"audio-source", optional_argument, 0, 'I'},
 				  {"agent", required_argument, 0, 'a'},
 				  {"help", no_argument, 0, 'h'},
 				  {0, 0, 0, 0}};
