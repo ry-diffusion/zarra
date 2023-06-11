@@ -5,8 +5,6 @@
 #include <termios.h>
 #include <unistd.h>
 
-Text space = " ";
-
 void updateState(UIState *uiState, TaskManager *taskManager)
 {
 	Task *task;
@@ -31,11 +29,17 @@ void updateState(UIState *uiState, TaskManager *taskManager)
 	}
 }
 
-void updateOutput(UIState *uiState, Text output)
+void UIClear(void)
 {
-	fwrite(space, sizeof(char), uiState->outputWritten, stdout);
-	fputc('\r', stdout);
-	uiState->outputWritten = printf("%s\r", output);
+	printf("\33[2K\r");
+	fflush(stdout);
+}
+
+void UIWrite(Text output)
+{
+	UIClear();
+
+	printf("%s\r", output);
 	fflush(stdout);
 }
 
@@ -47,13 +51,15 @@ void UITask(UIState *uiState, TaskManager *taskManager)
 
 	do
 	{
+		memset(textBuffer, '\0', 512);
+
 		tv.tv_sec = 0;
 		tv.tv_usec = 1;
 
 		FD_ZERO(&readset);
 		FD_SET(fileno(stdin), &readset);
-
 		select(fileno(stdin) + 1, &readset, NULL, NULL, &tv);
+
 		if (FD_ISSET(fileno(stdin), &readset))
 		{
 			switch (fgetc(stdin))
@@ -67,7 +73,8 @@ void UITask(UIState *uiState, TaskManager *taskManager)
 		snprintf(textBuffer, 512, "video: fps(%u); audio: bitrate(%f)",
 			 uiState->lastVideoFramerate,
 			 uiState->lastAudioBitrate);
-		updateOutput(uiState, textBuffer);
+
+		UIWrite(textBuffer);
 	} while (IsAllTasksGood(taskManager) && !uiState->terminateRequested);
 }
 

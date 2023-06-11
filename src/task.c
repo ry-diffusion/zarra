@@ -33,11 +33,15 @@ void SpawnVideoTask(TaskManager *taskManager, Text input, Text output)
 		dup2(pipedes[1], STDOUT_FILENO);
 		execvp("pkexec", (char **)cmdline);
 	}
+	else
+	{
 
-	close(pipedes[1]);
+		close(pipedes[1]);
 
-	Task task = {TaskRecordVideo, 0.0f, 0.0f, 0.0f, pipedes[0], pid};
-	taskManager->running[taskManager->currentRunning++] = task;
+		Task task = {TaskRecordVideo, 0.0f, 0.0f, 0.0f,
+			     pipedes[0],      pid};
+		taskManager->running[taskManager->currentRunning++] = task;
+	}
 }
 
 void SpawnAudioTask(TaskManager *taskManager, Text input, Text output, uint uid)
@@ -104,11 +108,13 @@ void SpawnProcessingTask(TaskManager *taskManager, Text videoPath,
 		dup2(pipedes[1], STDOUT_FILENO);
 		execvp("ffmpeg", (char **)cmdline);
 	}
-
-	close(pipedes[1]);
-
-	Task task = {TaskProcessRecording, 0.0f, 0.0f, 0.0f, pipedes[0], pid};
-	taskManager->running[taskManager->currentRunning++] = task;
+	else
+	{
+		close(pipedes[1]);
+		Task task = {TaskProcessRecording, 0.0f, 0.0f, 0.0f,
+			     pipedes[0],	   pid};
+		taskManager->running[taskManager->currentRunning++] = task;
+	}
 }
 
 bool IsAllTasksGood(TaskManager *taskManager)

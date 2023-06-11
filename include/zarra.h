@@ -5,7 +5,7 @@
 
 #define keyBufferSize 24
 #define valueBufferSize 24
-#define defaultOutputFileName "ZarraRecording.mkv"
+#define defaultOutputFileName "zarra-recording.mp4"
 
 typedef unsigned char bool;
 typedef unsigned char u8;
@@ -53,8 +53,8 @@ typedef struct TaskManager
 
 typedef struct CLIOptions
 {
-	char input[PATH_MAX];
-	char output[PATH_MAX];
+	char input[pathMax];
+	char output[pathMax];
 	uint framerate;
 
 	/**
@@ -65,7 +65,7 @@ typedef struct CLIOptions
 
 typedef struct UIState
 {
-	uint lastVideoFramerate, outputWritten;
+	uint lastVideoFramerate;
 	float lastAudioBitrate;
 	struct termios ttyOldstate;
 	atomic_bool terminateRequested;
@@ -128,5 +128,7 @@ void ParseFFmpegOutput(Task *task);
 void UITask(UIState *uiState, TaskManager *taskManager);
 void UIPrepareTerm(UIState *uiState);
 void UIRestoreTerm(UIState *uiStae);
+void UIWrite(Text output);
+void UIClear(void);
 
 bool RunAgent(CLIOptions options);
