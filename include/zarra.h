@@ -31,13 +31,6 @@ typedef enum TaskType
 	TaskMax
 } TaskType;
 
-typedef enum CLIValidationResult
-{
-	ValidationOK = (1 << 1),
-	ValidationMissingInput = (1 << 2),
-	ValidationInvalidInput = (1 << 3)
-} CLIValidationResult;
-
 typedef struct Task
 {
 	TaskType type;
