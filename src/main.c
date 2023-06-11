@@ -1,107 +1,57 @@
 #include "zarra.h"
-#include <linux/limits.h>
-#include <signal.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
+#define ARG_MAX 256
 
 /*
- * TODO: Add STDIN reading option.
- * DROP: Terminate
  * TODO: Add pause option (SIGSTOP to FFMPEG)
  * TODO: `zarra-list-devices` command.
  * DROP: Global variables
- * TODO: CLI Framerate
-
  */
 
-TaskManager taskManager = {{{0}}, 0};
-char rawVideoPath[PATH_MAX], rawAudioPath[PATH_MAX];
-Text outputPath;
-bool isProcessing = false;
-
-void Terminate(int Signal)
+void spawnRootAgent(char **agentArguments, char **argv)
 {
-	if (isProcessing)
-		return;
-	else
-		isProcessing = true;
-	(void)Signal;
+	char stringUid[10] = {0};
+	uint currentIdx = 0;
 
-	TerminateAllTasks(&taskManager);
+#define next agentArguments[currentIdx++]
 
-	for (uint currentIdx = 0; currentIdx < taskManager.currentRunning;
-	     ++currentIdx)
-	{
-		Task task = {0, 0, 0, 0, 0, 0};
-		taskManager.running[currentIdx] = task;
-	}
+	snprintf(stringUid, 10, "%u", getuid());
+	puts("Respawning Zarra with a root agent.");
 
-	taskManager.currentRunning = 0;
+	next = "pkexec";
+	next = "--keep-cwd";
+	next = *argv++;
+	next = "--agent";
+	next = stringUid;
 
-	puts("Processing!");
-	SpawnProcessingTask(&taskManager, rawVideoPath, rawAudioPath,
-			    outputPath);
+	while (*argv)
+		next = *argv++;
 
-	while (IsAllTasksGood(&taskManager))
-	{
-	}
+	next = NULL;
 
-	_exit(0);
+	execvp("pkexec", agentArguments);
+
+#undef next
 }
 
 int main(int argc, char **argv)
 {
 	CLIOptions options = {0};
-
-	// why not?
-	char cwd[PATH_MAX - 100] = {0};
+	char *agentArguments[argc + 3];
 
 	if (!ParseCLI(&options, argc, argv))
 		return 1;
 
-	if (!IsFFMPEGInstalled())
+	if (options.wantsRootAgent == -1)
 	{
-		fputs("Error: FFMPEG isn't installed. Please install it and "
-		      "try again\n",
-		      stderr);
-		return 1;
+		spawnRootAgent((char **)agentArguments, argv);
+		perror("Failed to spawn root agent! Too bad!");
 	}
-
-	outputPath = options.output;
-
-	getcwd(cwd, PATH_MAX);
-	sprintf(rawVideoPath, "%s/ZarraRawVideoInput.raw", cwd);
-
-	puts("Spawn Video Record Task");
-
-	SpawnVideoTask(&taskManager, options.input, rawVideoPath);
-
-	puts("Spawning Audio Record Task");
-	sprintf(rawAudioPath, "%s/ZarraRawAudioInput.flac", cwd);
-	SpawnAudioTask(&taskManager,
-		       "alsa_output.pci-0000_00_1b.0.analog-stereo.monitor",
-		       rawAudioPath);
-
-	signal(SIGTERM, Terminate);
-	signal(SIGINT, Terminate);
-	while (IsAllTasksGood(&taskManager))
+	else
 	{
-		uint currentTaskIdx = 0;
-		for (currentTaskIdx = 0;
-		     currentTaskIdx < taskManager.currentRunning;
-		     ++currentTaskIdx)
-		{
-			Task *task = &taskManager.running[currentTaskIdx];
-			printf("Task: %s\n", task->type == TaskRecordAudio
-						 ? "Record Audio"
-						 : "Record Video");
-			ParseFFmpegOutput(task);
-
-			printf(" Speed: %f\n FPS: %f\n Rate: %f\n", task->speed,
-			       task->framesPerSecond, task->bitrate);
-		}
+		return !RunAgent(options);
 	}
-
-	Terminate(-1);
-	return 0;
 }

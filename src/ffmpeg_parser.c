@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-void parseKV(Task *task, TextMut keyBuffer, TextMut valueBuffer)
+void parseKV(Task *task, Text keyBuffer, Text valueBuffer)
 {
 	if (StartsWith(keyBuffer, "fps"))
 		task->framesPerSecond = atof(valueBuffer);

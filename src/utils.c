@@ -1,4 +1,5 @@
 #include "zarra.h"
+#include <poll.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -25,7 +26,7 @@ int WaitPid(pid_t pid)
 	int stat, rc;
 	do
 	{
-		rc = waitpid(pid, &stat, WUNTRACED | WCONTINUED);
+		rc = waitpid(pid, &stat, WUNTRACED);
 		if (rc == -1)
 			return false;
 		if (WIFEXITED(stat))
@@ -48,4 +49,19 @@ bool IsFFMPEGInstalled(void)
 	}
 
 	return WaitPid(pid);
+}
+
+bool IsPipeClosed(uint fd)
+{
+	struct pollfd pfd = {
+	    .fd = fd,
+	    .events = POLLOUT,
+	};
+
+	if (poll(&pfd, 1, 1) < 0)
+	{
+		return false;
+	}
+
+	return pfd.revents & POLLERR;
 }

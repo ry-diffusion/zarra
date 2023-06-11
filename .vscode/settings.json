@@ -1,3 +1,9 @@
 {
-        "mesonbuild.configureOnOpen": true
+        "mesonbuild.configureOnOpen": true,
+        "mesonbuild.buildFolder": "build",
+        "files.associations": {
+                "limits.h": "c",
+                "zarra.h": "c"
+        },
+        "C_Cpp.default.compileCommands": "build/vscode_compile_commands.json"
 }

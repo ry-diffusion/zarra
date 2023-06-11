@@ -1,5 +1,8 @@
 #include "zarra.h"
+#include <signal.h>
 #include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -23,7 +26,6 @@ void SpawnVideoTask(TaskManager *taskManager, Text input, Text output)
 	    output,	  NULL};
 
 	pid_t pid = fork();
-
 	if (!pid)
 	{
 		close(pipedes[0]);
@@ -31,14 +33,18 @@ void SpawnVideoTask(TaskManager *taskManager, Text input, Text output)
 		dup2(pipedes[1], STDOUT_FILENO);
 		execvp("pkexec", (char **)cmdline);
 	}
+	else
+	{
 
-	close(pipedes[1]);
+		close(pipedes[1]);
 
-	Task task = {TaskRecordVideo, 0.0f, 0.0f, 0.0f, pipedes[0], pid};
-	taskManager->running[taskManager->currentRunning++] = task;
+		Task task = {TaskRecordVideo, 0.0f, 0.0f, 0.0f,
+			     pipedes[0],      pid};
+		taskManager->running[taskManager->currentRunning++] = task;
+	}
 }
 
-void SpawnAudioTask(TaskManager *taskManager, Text input, Text output)
+void SpawnAudioTask(TaskManager *taskManager, Text input, Text output, uint uid)
 {
 	int pipedes[2] = {0, 0};
 	pipe(pipedes);
@@ -52,52 +58,33 @@ void SpawnAudioTask(TaskManager *taskManager, Text input, Text output)
 
 	if (!pid)
 	{
+		char buffer[30] = {0};
+
+		if (setuid(uid) < 0)
+		{
+			fprintf(stderr,
+				"AudioTask(error): unable to setuid to "
+				"%u. Aborting!\n ",
+				uid);
+
+			_exit(1);
+		}
+
+		snprintf(buffer, 30, "/var/run/user/%u/pulse", uid);
+		setenv("PULSE_RUNTIME_PATH", buffer, 1);
+
 		close(pipedes[0]);
 		close(STDIN_FILENO);
 		dup2(pipedes[1], STDOUT_FILENO);
 		execvp("ffmpeg", (char **)cmdline);
 	}
-
-	close(pipedes[1]);
-
-	Task task = {TaskRecordAudio, 0.0f, 0.0f, 0.0f, pipedes[0], pid};
-	taskManager->running[taskManager->currentRunning++] = task;
-}
-
-bool IsAllTasksGood(TaskManager *taskManager)
-{
-	int stat, rc;
-	u8 currentTask;
-	Task task;
-	bool allGood = true;
-
-	for (currentTask = 0;
-	     currentTask < taskManager->currentRunning && allGood;
-	     ++currentTask)
+	else
 	{
-		task = taskManager->running[currentTask];
+		close(pipedes[1]);
 
-		rc = waitpid(task.pid, &stat, WUNTRACED | WCONTINUED | WNOHANG);
-		if (rc == -1)
-			return false;
-		if (WIFEXITED(stat) && WEXITSTATUS(stat) != 0)
-			allGood = false;
-	}
-
-	return allGood;
-}
-
-void TerminateAllTasks(TaskManager *taskManager)
-{
-	u8 currentTask;
-	Task task;
-
-	for (currentTask = 0; currentTask < taskManager->currentRunning;
-	     ++currentTask)
-	{
-		task = taskManager->running[currentTask];
-
-		kill(SIGTERM, task.pid);
+		Task task = {TaskRecordAudio, 0.0f, 0.0f, 0.0f,
+			     pipedes[0],      pid};
+		taskManager->running[taskManager->currentRunning++] = task;
 	}
 }
 
@@ -121,9 +108,62 @@ void SpawnProcessingTask(TaskManager *taskManager, Text videoPath,
 		dup2(pipedes[1], STDOUT_FILENO);
 		execvp("ffmpeg", (char **)cmdline);
 	}
+	else
+	{
+		close(pipedes[1]);
+		Task task = {TaskProcessRecording, 0.0f, 0.0f, 0.0f,
+			     pipedes[0],	   pid};
+		taskManager->running[taskManager->currentRunning++] = task;
+	}
+}
 
-	close(pipedes[1]);
+bool IsAllTasksGood(TaskManager *taskManager)
+{
+	int stat, rc;
+	u8 currentTask;
+	Task task;
 
-	Task task = {TaskProcessRecording, 0.0f, 0.0f, 0.0f, pipedes[0], pid};
-	taskManager->running[taskManager->currentRunning++] = task;
+	for (currentTask = 0; currentTask < taskManager->currentRunning;
+	     ++currentTask)
+	{
+
+		task = taskManager->running[currentTask];
+
+		switch (task.type)
+		{
+		case TaskRecordVideo:
+			if (IsPipeClosed(task.stdoutFd))
+				return false;
+			break;
+		default:
+			rc = waitpid(task.pid, &stat, WUNTRACED | WNOHANG);
+
+			switch (rc)
+			{
+			case -1:
+				return false;
+			case 0:
+				continue;
+			}
+
+			if (WIFEXITED(stat) && WEXITSTATUS(stat) != 0)
+				return false;
+		}
+	}
+
+	return true;
+}
+
+void TerminateAllTasks(TaskManager *taskManager)
+{
+	u8 currentTask;
+	Task task;
+
+	for (currentTask = 0; currentTask < taskManager->currentRunning;
+	     ++currentTask)
+	{
+		task = taskManager->running[currentTask];
+
+		kill(task.pid, SIGTERM);
+	}
 }
